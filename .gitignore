@@ -1,0 +1,14 @@
+temp.linux-x86_64-3.6/
+
+*.so
+*.sw?
+*.py?
+.env/*
+*/.ipynb_checkpoints/*
+
+# gitignore the built release.
+assignment3/*
+
+cifar-10-batches-py/
+__pycache__/
+
