@@ -7,7 +7,7 @@ temp.linux-x86_64-3.6/
 */.ipynb_checkpoints/*
 
 # gitignore the built release.
-assignment3/*
+#assignment3/*
 
 cifar-10-batches-py/
 __pycache__/
