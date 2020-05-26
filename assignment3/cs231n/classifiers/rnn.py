@@ -151,8 +151,30 @@ class CaptioningRNN(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
-
+        # Forward pass
+        affine_features, c_1 = affine_forward(features, W_proj, b_proj)       
+        x, c_2 = word_embedding_forward(captions_in, W_embed)
+        if self.cell_type is "rnn":
+            x, c_3 = rnn_forward(x, affine_features, Wx, Wh, b)
+        x, c_4 = temporal_affine_forward(x, W_vocab, b_vocab)
+        
+        # Get loss and dout
+        loss, dout = temporal_softmax_loss(x, captions_out, mask, verbose=False)  
+        
+        # Backward pass
+        dout, dW_vocab, db_vocab = temporal_affine_backward(dout, c_4)
+        grads.update({"W_vocab": dW_vocab, "b_vocab": db_vocab})
+        
+        if self.cell_type is "rnn":
+            dout, dh0, dWx, dWh, db = rnn_backward(dout, c_3)
+            grads.update({"Wx": dWx, "Wh": dWh, "b": db})
+            
+        dW_embed = word_embedding_backward(dout, c_2)
+        grads.update({"W_embed": dW_embed})
+        
+        dx, dW_proj, db_proj = affine_backward(dh0, c_1)
+        grads.update({"W_proj": dW_proj, "b_proj": db_proj})
+            
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -218,8 +240,20 @@ class CaptioningRNN(object):
         # you are using an LSTM, initialize the first cell state to zeros.        #
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        next_h, _ = affine_forward(features, W_proj, b_proj)
+        captions[:, 0] = self._start
+        i = 1
 
-        pass
+        while i < max_length:
+            out, _ = word_embedding_forward(captions, W_embed)
+            next_h, _ = rnn_step_forward(out[:, i, :], next_h, Wx, Wh, b)
+            scores, _ = affine_forward(next_h, W_vocab, b_vocab)
+            idx = np.argmax(scores, axis=1)
+            if i < max_length:
+                captions[:, i] = idx 
+            
+            i += 1
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
