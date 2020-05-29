@@ -154,8 +154,13 @@ class CaptioningRNN(object):
         # Forward pass
         affine_features, c_1 = affine_forward(features, W_proj, b_proj)       
         x, c_2 = word_embedding_forward(captions_in, W_embed)
+        
         if self.cell_type is "rnn":
-            x, c_3 = rnn_forward(x, affine_features, Wx, Wh, b)
+            forward_func = rnn_forward
+        elif self.cell_type is "lstm":
+            forward_func = lstm_forward
+        x, c_3 = forward_func(x, affine_features, Wx, Wh, b)
+
         x, c_4 = temporal_affine_forward(x, W_vocab, b_vocab)
         
         # Get loss and dout
@@ -166,8 +171,11 @@ class CaptioningRNN(object):
         grads.update({"W_vocab": dW_vocab, "b_vocab": db_vocab})
         
         if self.cell_type is "rnn":
-            dout, dh0, dWx, dWh, db = rnn_backward(dout, c_3)
-            grads.update({"Wx": dWx, "Wh": dWh, "b": db})
+            backward_func = rnn_backward
+        elif self.cell_type is "lstm":
+            backward_func = lstm_backward
+        dout, dh0, dWx, dWh, db = backward_func(dout, c_3)
+        grads.update({"Wx": dWx, "Wh": dWh, "b": db})
             
         dW_embed = word_embedding_backward(dout, c_2)
         grads.update({"W_embed": dW_embed})
@@ -240,21 +248,26 @@ class CaptioningRNN(object):
         # you are using an LSTM, initialize the first cell state to zeros.        #
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        
-        next_h, _ = affine_forward(features, W_proj, b_proj)
-        captions[:, 0] = self._start
-        i = 1
 
-        while i < max_length:
+        next_h, _ = affine_forward(features, W_proj, b_proj)
+        next_c = 0
+        captions[:, 0] = self._start
+
+        for i in range(1, max_length):
             out, _ = word_embedding_forward(captions, W_embed)
-            next_h, _ = rnn_step_forward(out[:, i, :], next_h, Wx, Wh, b)
+            x = out[:, i-1, :]
+            
+            if self.cell_type is "rnn":
+                next_h, _ = rnn_step_forward(x, next_h, Wx, Wh, b)
+            elif self.cell_type is "lstm":
+                next_h, next_c, _ = lstm_step_forward(x, next_h, next_c, Wx, Wh, b)
+                
             scores, _ = affine_forward(next_h, W_vocab, b_vocab)
             idx = np.argmax(scores, axis=1)
+            
             if i < max_length:
                 captions[:, i] = idx 
             
-            i += 1
-
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
