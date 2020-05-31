@@ -114,9 +114,15 @@ def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate)
     # Be very careful about the signs of elements in your code.            #
     ########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    
+    model.eval()
+    scores = model(img)
+    reg = l2_reg * torch.norm(img)
+    score = scores[0, target_y] - reg
+    score.backward()
+    img.data += learning_rate * img.grad / img.grad.norm()
+    img.grad.data.zero_()  # don't forget that gradients sum each iteration; reset it!
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ########################################################################
     #                             END OF YOUR CODE                         #
