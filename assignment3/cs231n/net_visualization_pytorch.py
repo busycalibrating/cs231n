@@ -84,9 +84,9 @@ def make_fooling_image(X, target_y, model):
     model.eval()
     
     for i in tqdm.tqdm(range(max_iter)):
-        # Input image X is given
         scores = model(X_fooling)
         best = torch.argmax(scores, axis=1)
+        
         if best == target_y:
             print("Fooled in %s iterations" % i)
             return X_fooling
@@ -97,7 +97,7 @@ def make_fooling_image(X, target_y, model):
         g = X_fooling.grad
         dX = learning_rate * g / g.norm()
 
-        X_fooling += dX
+        X_fooling.data += dX
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
