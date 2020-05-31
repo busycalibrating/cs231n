@@ -4,6 +4,7 @@ import torchvision.transforms as T
 import numpy as np
 from .image_utils import SQUEEZENET_MEAN, SQUEEZENET_STD
 from scipy.ndimage.filters import gaussian_filter1d
+import tqdm
 
 def compute_saliency_maps(X, y, model):
     """
@@ -34,7 +35,10 @@ def compute_saliency_maps(X, y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = model(X)
+    loss = scores.gather(1, y.view(-1, 1)).squeeze().sum()
+    loss.backward()
+    saliency, _ = torch.max(X.grad.data.abs(), dim=1)    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -75,8 +79,25 @@ def make_fooling_image(X, target_y, model):
     # You can print your progress over iterations to check your algorithm.       #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    max_iter = 500
+    model.eval()
+    
+    for i in tqdm.tqdm(range(max_iter)):
+        # Input image X is given
+        scores = model(X_fooling)
+        best = torch.argmax(scores, axis=1)
+        if best == target_y:
+            print("Fooled in %s iterations" % i)
+            return X_fooling
+        
+        score = scores[0, target_y]
+        score.backward()
 
-    pass
+        g = X_fooling.grad
+        dX = learning_rate * g / g.norm()
+
+        X_fooling += dX
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
