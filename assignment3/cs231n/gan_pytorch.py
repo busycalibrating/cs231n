@@ -6,13 +6,14 @@ import torchvision
 import torchvision.transforms as T
 import torch.optim as optim
 from torch.utils.data import sampler
+import tqdm
 
 import PIL
 
 NOISE_DIM = 96
 
-dtype = torch.FloatTensor
-#dtype = torch.cuda.FloatTensor ## UNCOMMENT THIS LINE IF YOU'RE ON A GPU!
+#dtype = torch.FloatTensor
+dtype = torch.cuda.FloatTensor ## UNCOMMENT THIS LINE IF YOU'RE ON A GPU!
 
 def sample_noise(batch_size, dim, seed=None):
     """
@@ -31,7 +32,7 @@ def sample_noise(batch_size, dim, seed=None):
         
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    return torch.rand(size=[batch_size, dim]) * 2 - 1
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
@@ -46,13 +47,26 @@ def discriminator(seed=None):
     model = None
 
     ##############################################################################
-    # TODO: Implement architecture                                               #
+    # TODO: Implement architecture 
+    # 
+    # - Fully connected layer with input size 784 and output size 256
+    # - LeakyReLU with alpha 0.01
+    # - Fully connected layer with input_size 256 and output size 256
+    # - LeakyReLU with alpha 0.01
+    # - Fully connected layer with input size 256 and output size 1
     #                                                                            #
     # HINT: nn.Sequential might be helpful.                                      #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model = nn.Sequential(
+        Flatten(),
+        nn.Linear(784, 256),
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.Linear(256, 256),
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.Linear(256, 1),
+    )
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -77,8 +91,15 @@ def generator(noise_dim=NOISE_DIM, seed=None):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
-
+    model = nn.Sequential(
+        nn.Linear(noise_dim, 1024),
+        nn.ReLU(),
+        nn.Linear(1024, 1024),
+        nn.ReLU(),
+        nn.Linear(1024, 784),
+        nn.Tanh(),
+    )
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -118,7 +139,9 @@ def discriminator_loss(logits_real, logits_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    true_labels_real = torch.ones(logits_real.shape).type(dtype)
+    true_labels_fake = torch.zeros(logits_fake.shape).type(dtype)
+    loss = bce_loss(logits_real, true_labels_real) + bce_loss(logits_fake, true_labels_fake)  
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -135,8 +158,9 @@ def generator_loss(logits_fake):
     """
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    
+    true_labels = torch.ones(logits_fake.shape).type(dtype)
+    loss = bce_loss(logits_fake, true_labels)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -155,7 +179,7 @@ def get_optimizer(model):
     optimizer = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.5, 0.999))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return optimizer
@@ -256,7 +280,7 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, load
     """
     images = []
     iter_count = 0
-    for epoch in range(num_epochs):
+    for epoch in tqdm.auto.tqdm(range(num_epochs)):
         for x, _ in loader_train:
             if len(x) != batch_size:
                 continue

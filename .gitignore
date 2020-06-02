@@ -9,6 +9,7 @@ temp.linux-x86_64-3.6/
 # gitignore the built release.
 #assignment3/*
 
+MNIST_data/
 cifar-10-batches-py/
 __pycache__/
 
