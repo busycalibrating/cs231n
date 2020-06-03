@@ -198,8 +198,8 @@ def ls_discriminator_loss(scores_real, scores_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
-
+    loss =  ((scores_fake) ** 2 / 2).mean() + ((scores_real - 1) ** 2 / 2).mean()
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
 
@@ -216,7 +216,7 @@ def ls_generator_loss(scores_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    loss = ((scores_fake - 1) ** 2 / 2).mean()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -234,7 +234,20 @@ def build_dc_classifier(batch_size):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model = nn.Sequential(
+        nn.Conv2d(1, 32, 5),
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.MaxPool2d(2),
+        nn.Conv2d(32, 64, 5),
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.MaxPool2d(2),
+        Flatten(),
+        nn.Linear(1024, 4 * 4 * 64),
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.Linear(4 * 4 * 64, 1),
+    )
+    
+    return model
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -253,10 +266,24 @@ def build_dc_generator(noise_dim=NOISE_DIM):
     #                                                                            #
     # HINT: nn.Sequential might be helpful.                                      #
     ##############################################################################
-    # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****  
 
-    pass
-
+    model = nn.Sequential(
+        nn.Linear(noise_dim, 1024),
+        nn.ReLU(),
+        nn.BatchNorm1d(1024),
+        nn.Linear(1024, 7 * 7 * 128),
+        nn.ReLU(),
+        nn.BatchNorm1d(7 * 7 * 128),        
+        Unflatten(),
+        nn.ConvTranspose2d(128, 64, 4, 2, padding=1),
+        nn.ReLU(),
+        nn.BatchNorm2d(64),
+        nn.ConvTranspose2d(64, 1, 4, 2, padding=1),
+        nn.Tanh(),
+    )
+    
+    return model
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
